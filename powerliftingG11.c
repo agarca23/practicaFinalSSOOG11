@@ -13,9 +13,20 @@
 
 #define NUMJUECES 2
 
+int colaJuez1[10];
+int colaJuez2[10];
+char id[10];
+char msg[100];
+
+
+void writeLogMessage(char *id,char *msg);
+void *accionesJuez(void* manejadora);
+int calculoAleatorio(int max, int min);
+
+
 struct atletas{
-	int numeroAtleta
-	bool deshidratado;
+	int numeroAtleta;
+	int deshidratado;
 	int puntuacion;
 };
 
@@ -24,9 +35,9 @@ struct atletas *punteroAtletas;
 
 struct jueces{
 	pthread_t juez;
-	bool ocupado;/*indica si el juez esta con algun atleta*/
+	int ocupado;/*indica si el juez esta con algun atleta*/
 	int identificadorJuez;
-	bool descansando;/*si el juez ha atendido a 4 atletas se pone a true*/
+	int descansando;/*si el juez ha atendido a 4 atletas se pone a true*/
 };
 
 /*puntero que contiene los jueces*/
@@ -42,7 +53,8 @@ pthread_mutex_t controladorJuez2;/*contralara que dos atletas de la cola no inte
 pthread_mutex_t controladorEscritura;/*controlara que no mas de dos coches intenten escribir en el fichero*/
 
 
-
+FILE *logFile;
+char* logFileName ="registro.log";
 
 
 int main(){
@@ -51,10 +63,11 @@ int main(){
 	punteroJueces = (struct jueces*)malloc(sizeof(struct jueces)*NUMJUECES);
 
 	/*Inicializamos los jueces*/
+	int i;
 	for(i=0;i<NUMJUECES;i++){
-   		punteroJueces[i].ocupado = false;
+   		punteroJueces[i].ocupado = 0;
     	punteroJueces[i].identificadorJuez = i+1;
-    	punteroJueces[i].descansando = false;
+    	punteroJueces[i].descansando = 0;
    	}
 }
 
@@ -62,7 +75,6 @@ void *accionesJuez(void* manejadora){
 	int idJuez= *(int*)manejadora;
 	int i=1;
 	int puntuacionEjercicio;
-	bool beber;
 	int atletasAtendidos=0;
 	int atletaActual;
 	int j;
@@ -71,31 +83,31 @@ void *accionesJuez(void* manejadora){
 
 	while(i==1){
 		if(idJuez==1){
-			pthread_mutex_lock(&controladorColaJuez1);
+			pthread_mutex_lock(&controladorColaJueces);
 			atletaActual = colaJuez1[0];
 			for(j=1;j<10;j++){
 				colaJuez1[j-1]=colaJuez1[j];
 			}
 			colaJuez1[9]=100;
 
-			pthread_mutex_unlock(&controladorColaJuez1);
+			pthread_mutex_unlock(&controladorColaJueces);
 
 
 		}else{
-			pthread_mutex_lock(&controladorColaJuez2);
+			pthread_mutex_lock(&controladorColaJueces);
 
 			atletaActual = colaJuez2[0];
 			for(j=1;j<10;j++){
 				colaJuez2[j-1]=colaJuez2[j];
 			}
 			colaJuez2[9]=100;
-			pthread_mutex_unlock(&controladorColaJuez2);
+			pthread_mutex_unlock(&controladorColaJueces);
 
 		}
 
 		probabilidadMovimiento=calculoAleatorio(10,1);
 		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg,"entra en la tarima %d",id);
+		sprintf(msg,"entra en la tarima %d",idJuez);
 		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 		writeLogMessage(id,msg);
 		pthread_mutex_unlock(&controladorEscritura);
@@ -105,8 +117,9 @@ void *accionesJuez(void* manejadora){
 			punteroAtletas[atletaActual].puntuacion=puntuacionEjercicio;
 			probabilidadAgua=calculoAleatorio(10,1);
 			if(probabilidadAgua==1){
-				punteroAtletas[atletaActual].deshidratado=true;
+				punteroAtletas[atletaActual].deshidratado=1;
 			}
+			atletasAtendidos++;
 		}
 		/*Descalificado normativa*/
 		if(probabilidadMovimiento==9){
