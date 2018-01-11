@@ -12,8 +12,9 @@
 #include <string.h>
 
 #define NUMJUECES 2
+#define NUMATLETAS 10
 
-int colaJuez1[10];
+int colaJuez1[10];/*La cola guarda una referencia en cada posicion al coche que la ocupa*/
 int colaJuez2[10];
 char id[10];
 char msg[100];
@@ -70,6 +71,11 @@ int main(){
     	punteroJueces[i].descansando = 0;
    	}
 
+   	/*Inicializamos las colas, como no tenemos 100 atletas será nuestro valor de control*/
+	for(i=0;i<NUMATLETAS;i++){
+		colaJuez1[i]=100;
+		colaJuez2[i]=100;
+	}
 
    	/*Lanzamos losjueces*/
    	for(i=0;i<NUMJUECES;i++){
@@ -94,67 +100,87 @@ void *accionesJuez(void* manejadora){
 	while(i==1){
 		if(idJuez==1){
 			pthread_mutex_lock(&controladorColaJueces);
-			atletaActual = colaJuez1[0];
-			for(j=1;j<10;j++){
-				colaJuez1[j-1]=colaJuez1[j];
+			if(colaJuez1[0]!=100){
+				atletaActual = colaJuez1[0];
+				for(j=1;j<10;j++){
+					colaJuez1[j-1]=colaJuez1[j];
+				}
+				colaJuez1[9]=100;
+			}else if(colaJuez2[0]!=100){
+				atletaActual = colaJuez2[0];
+				for(j=1;j<10;j++){
+					colaJuez2[j-1]=colaJuez2[j];
+				}
+				colaJuez1[9]=100;
 			}
-			colaJuez1[9]=100;
-
 			pthread_mutex_unlock(&controladorColaJueces);
 
 
 		}else{
 			pthread_mutex_lock(&controladorColaJueces);
-
-			atletaActual = colaJuez2[0];
-			for(j=1;j<10;j++){
-				colaJuez2[j-1]=colaJuez2[j];
+			if(colaJuez2[0]!=100){
+				atletaActual = colaJuez2[0];
+				for(j=1;j<10;j++){
+					colaJuez2[j-1]=colaJuez2[j];
+				}
+				colaJuez2[9]=100;
+			}else if(colaJuez1[0]!=100){
+				atletaActual = colaJuez1[0];
+				for(j=1;j<10;j++){
+					colaJuez1[j-1]=colaJuez1[j];
+				}
+				colaJuez1[9]=100;
 			}
-			colaJuez2[9]=100;
 			pthread_mutex_unlock(&controladorColaJueces);
 
 		}
-
-		probabilidadMovimiento=calculoAleatorio(10,1);
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg,"entra en la tarima %d",idJuez);
-		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-		writeLogMessage(id,msg);
-		pthread_mutex_unlock(&controladorEscritura);
-		/*Movimiento valido*/
-		if(probabilidadMovimiento<9){
-			tiempoEnTarima=calculoAleatorio(6,2);
-			puntuacionEjercicio=calculoAleatorio(300,60);
-			punteroAtletas[atletaActual].puntuacion=puntuacionEjercicio;
-			probabilidadAgua=calculoAleatorio(10,1);
-			if(probabilidadAgua==1){
-				punteroAtletas[atletaActual].deshidratado=1;
-			}
-
-		}
-		/*Descalificado normativa*/
-		if(probabilidadMovimiento==9){
-			tiempoEnTarima=calculoAleatorio(4,1);
-			sleep(tiempoEnTarima);
-
-		}
-		/*Levantamiento fallido*/
-		if(probabilidadMovimiento==10){
-			tiempoEnTarima=calculoAleatorio(10,6);
-			sleep(tiempoEnTarima);
-
-		}
-		if(atletasAtendidos%4){
-			punteroJueces[idJuez].descansando=1;
-				/*escribo en el fichero*/
+		if(atletaActual!=100){
+			probabilidadMovimiento=calculoAleatorio(10,1);
 			pthread_mutex_lock(&controladorEscritura);
-			sprintf(msg,"descansa");
-			sprintf(id,"juez_%d",idJuez);
+			sprintf(msg,"entra en la tarima %d",idJuez);
+			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 			writeLogMessage(id,msg);
 			pthread_mutex_unlock(&controladorEscritura);
-			sleep(10);
-			punteroJueces[idJuez].descansando=0;
+			/*Movimiento valido*/
+			if(probabilidadMovimiento<9){
+				tiempoEnTarima=calculoAleatorio(6,2);
+				puntuacionEjercicio=calculoAleatorio(300,60);
+				punteroAtletas[atletaActual].puntuacion=puntuacionEjercicio;
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg,"tiene una puntuacion de %d",punteroAtletas[atletaActual].puntuacion);
+				sprintf(id,"coche_%d",punteroAtletas[atletaActual].numeroAtleta);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+				probabilidadAgua=calculoAleatorio(10,1);
+				if(probabilidadAgua==1){
+					punteroAtletas[atletaActual].deshidratado=1;
+				}
 
+			}
+			/*Descalificado normativa*/
+			if(probabilidadMovimiento==9){
+				tiempoEnTarima=calculoAleatorio(4,1);
+				sleep(tiempoEnTarima);
+
+			}
+			/*Levantamiento fallido*/
+			if(probabilidadMovimiento==10){
+				tiempoEnTarima=calculoAleatorio(10,6);
+				sleep(tiempoEnTarima);
+
+			}
+			if(atletasAtendidos%4){
+				punteroJueces[idJuez].descansando=1;
+					/*escribo en el fichero*/
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg,"descansa");
+				sprintf(id,"juez_%d",idJuez);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+				sleep(10);
+				punteroJueces[idJuez].descansando=0;
+
+			}
 		}
 	}
 
