@@ -69,11 +69,21 @@ int main(){
     	punteroJueces[i].identificadorJuez = i+1;
     	punteroJueces[i].descansando = 0;
    	}
+
+
+   	/*Lanzamos losjueces*/
+   	for(i=0;i<NUMJUECES;i++){
+		pthread_create(&punteroJueces[i].juez,NULL,accionesJuez,(void*)&punteroJueces[i].identificadorJuez);
+		
+	}
+
+
 }
 
 void *accionesJuez(void* manejadora){
 	int idJuez= *(int*)manejadora;
 	int i=1;
+	int tiempoEnTarima;
 	int puntuacionEjercicio;
 	int atletasAtendidos=0;
 	int atletaActual;
@@ -113,20 +123,37 @@ void *accionesJuez(void* manejadora){
 		pthread_mutex_unlock(&controladorEscritura);
 		/*Movimiento valido*/
 		if(probabilidadMovimiento<9){
+			tiempoEnTarima=calculoAleatorio(6,2);
 			puntuacionEjercicio=calculoAleatorio(300,60);
 			punteroAtletas[atletaActual].puntuacion=puntuacionEjercicio;
 			probabilidadAgua=calculoAleatorio(10,1);
 			if(probabilidadAgua==1){
 				punteroAtletas[atletaActual].deshidratado=1;
 			}
-			atletasAtendidos++;
+
 		}
 		/*Descalificado normativa*/
 		if(probabilidadMovimiento==9){
+			tiempoEnTarima=calculoAleatorio(4,1);
+			sleep(tiempoEnTarima);
 
 		}
 		/*Levantamiento fallido*/
 		if(probabilidadMovimiento==10){
+			tiempoEnTarima=calculoAleatorio(10,6);
+			sleep(tiempoEnTarima);
+
+		}
+		if(atletasAtendidos%4){
+			punteroJueces[idJuez].descansando=1;
+				/*escribo en el fichero*/
+			pthread_mutex_lock(&controladorEscritura);
+			sprintf(msg,"descansa");
+			sprintf(id,"juez_%d",idJuez);
+			writeLogMessage(id,msg);
+			pthread_mutex_unlock(&controladorEscritura);
+			sleep(10);
+			punteroJueces[idJuez].descansando=0;
 
 		}
 	}
