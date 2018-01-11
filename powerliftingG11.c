@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <string.h>
 
+#define NUMJUECES 2
 
 struct atletas{
 	int numeroAtleta
@@ -20,9 +21,35 @@ struct atletas{
 
 struct atletas *punteroAtletas;
 
-int main(){
 
-	
+struct jueces{
+	pthread_t juez;
+	bool ocupado;/*indica si el juez esta con algun atleta*/
+	int identificadorJuez;
+	bool descansando;/*si el juez ha atendido a 4 atletas se pone a true*/
+};
+
+/*puntero que contiene los jueces*/
+
+struct jueces *punteroJueces;
+
+
+pthread_mutex_t controladorColaJueces;/*controla que no entren a la cola dos atletas y  evita que tengan la misma posicion en la cola*/
+pthread_mutex_t controladorJuez;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
+
+
+
+int main(){
+	/*Reservo memoria para los struct de los jueces*/
+
+	punteroJueces = (struct jueces*)malloc(sizeof(struct jueces)*NUMJUECES);
+
+	/*Inicializamos los jueces*/
+	for(i=0;i<NUMJUECES;i++){
+   		punteroJueces[i].ocupado = false;
+    	punteroJueces[i].identificadorJuez = i+1;
+    	punteroJueces[i].descansando = false;
+   	}
 }
 
 void writeLogMessage(char *id,char *msg){
