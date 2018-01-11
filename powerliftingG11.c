@@ -33,9 +33,15 @@ struct jueces{
 
 struct jueces *punteroJueces;
 
-
+/*Mutex para los jueces y sus colas*/
 pthread_mutex_t controladorColaJueces;/*controla que no entren a la cola dos atletas y  evita que tengan la misma posicion en la cola*/
-pthread_mutex_t controladorJuez;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
+pthread_mutex_t controladorJuez1;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
+pthread_mutex_t controladorJuez2;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
+
+
+pthread_mutex_t controladorEscritura;/*controlara que no mas de dos coches intenten escribir en el fichero*/
+
+
 
 
 
@@ -50,6 +56,68 @@ int main(){
     	punteroJueces[i].identificadorJuez = i+1;
     	punteroJueces[i].descansando = false;
    	}
+}
+
+void *accionesJuez(void* manejadora){
+	int idJuez= *(int*)manejadora;
+	int i=1;
+	int puntuacionEjercicio;
+	bool beber;
+	int atletasAtendidos=0;
+	int atletaActual;
+	int j;
+	int probabilidadMovimiento;
+	int probabilidadAgua;
+
+	while(i==1){
+		if(idJuez==1){
+			pthread_mutex_lock(&controladorColaJuez1);
+			atletaActual = colaJuez1[0];
+			for(j=1;j<10;j++){
+				colaJuez1[j-1]=colaJuez1[j];
+			}
+			colaJuez1[9]=100;
+
+			pthread_mutex_unlock(&controladorColaJuez1);
+
+
+		}else{
+			pthread_mutex_lock(&controladorColaJuez2);
+
+			atletaActual = colaJuez2[0];
+			for(j=1;j<10;j++){
+				colaJuez2[j-1]=colaJuez2[j];
+			}
+			colaJuez2[9]=100;
+			pthread_mutex_unlock(&controladorColaJuez2);
+
+		}
+
+		probabilidadMovimiento=calculoAleatorio(10,1);
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg,"entra en la tarima %d",id);
+		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+		writeLogMessage(id,msg);
+		pthread_mutex_unlock(&controladorEscritura);
+		/*Movimiento valido*/
+		if(probabilidadMovimiento<9){
+			puntuacionEjercicio=calculoAleatorio(300,60);
+			punteroAtletas[atletaActual].puntuacion=puntuacionEjercicio;
+			probabilidadAgua=calculoAleatorio(10,1);
+			if(probabilidadAgua==1){
+				punteroAtletas[atletaActual].deshidratado=true;
+			}
+		}
+		/*Descalificado normativa*/
+		if(probabilidadMovimiento==9){
+
+		}
+		/*Levantamiento fallido*/
+		if(probabilidadMovimiento==10){
+
+		}
+	}
+
 }
 
 void writeLogMessage(char *id,char *msg){
