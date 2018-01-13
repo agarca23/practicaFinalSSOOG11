@@ -14,10 +14,14 @@
 #define NUMJUECES 2
 #define NUMATLETAS 10
 
-int colaJuez1[10];/*La cola guarda una referencia en cada posicion al coche que la ocupa*/
-int colaJuez2[10];
+int colaJuez[10];/*La cola guarda una referencia en cada posicion al coche que la ocupa*/
+int atletasIntroducidos;
+int mejoresPuntuaciones[3]={0,0,0};
+int mejoresAtletas[3]{100,100,100};
 char id[10];
 char msg[100];
+pthread_t juez1;
+pthread_t juez2;
 
 
 void writeLogMessage(char *id,char *msg);
@@ -28,29 +32,19 @@ int calculoAleatorio(int max, int min);
 struct atletas{
 	int numeroAtleta;
 	int deshidratado;
-	int puntuacion;
+	int ha_competido;
+	int tarimaAsignada;
 };
 
 struct atletas *punteroAtletas;
 
 
-struct jueces{
-	pthread_t juez;
-	int ocupado;/*indica si el juez esta con algun atleta*/
-	int identificadorJuez;
-	int descansando;/*si el juez ha atendido a 4 atletas se pone a true*/
-};
-
-/*puntero que contiene los jueces*/
-
-struct jueces *punteroJueces;
 
 /*Mutex para los jueces y sus colas*/
 pthread_mutex_t controladorColaJueces;/*controla que no entren a la cola dos atletas y  evita que tengan la misma posicion en la cola*/
 pthread_mutex_t controladorJuez1;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
 pthread_mutex_t controladorJuez2;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
-
-
+pthread_mutex_t controladorPodium;
 pthread_mutex_t controladorEscritura;/*controlara que no mas de dos coches intenten escribir en el fichero*/
 
 
@@ -59,81 +53,61 @@ char* logFileName ="registro.log";
 
 
 int main(){
-	/*Reservo memoria para los struct de los jueces*/
 
-	punteroJueces = (struct jueces*)malloc(sizeof(struct jueces)*NUMJUECES);
 
-	/*Inicializamos los jueces*/
-	int i;
-	for(i=0;i<NUMJUECES;i++){
-   		punteroJueces[i].ocupado = 0;
-    	punteroJueces[i].identificadorJuez = i+1;
-    	punteroJueces[i].descansando = 0;
-   	}
 
-   	/*Inicializamos las colas, como no tenemos 100 atletas será nuestro valor de control*/
+	/*Inicializamos los semaforos*/
+	pthread_mutex_init(&controladorColaJueces,NULL);
+	pthread_mutex_init(&controladorJuez1,NULL);
+	pthread_mutex_init(&controladorJuez2,NULL);
+	pthread_mutex_init(&controladorPodium,NULL);
+	pthread_mutex_init(&controladorEscritura,NULL);
+
+   	/*Inicializamos la cola, como no tenemos 100 atletas será nuestro valor de control*/
 	for(i=0;i<NUMATLETAS;i++){
-		colaJuez1[i]=100;
-		colaJuez2[i]=100;
+		colaJuez[i]=100;
 	}
 
    	/*Lanzamos losjueces*/
-   	for(i=0;i<NUMJUECES;i++){
-		pthread_create(&punteroJueces[i].juez,NULL,accionesJuez,(void*)&punteroJueces[i].identificadorJuez);
-		
-	}
+	i=1;
+	pthread_create(&juez1, NULL, accionesJuez,(void*)&i);
+	i=2;	
+	pthread_create(&juez2, NULL, accionesJuez,(void*)&i);
+
 
 
 }
 
 void *accionesJuez(void* manejadora){
+
 	int idJuez= *(int*)manejadora;
 	int i=1;
 	int tiempoEnTarima;
 	int puntuacionEjercicio;
 	int atletasAtendidos=0;
-	int atletaActual;
-	int j;
+	int atletaActual=100;
+	int j, k;
 	int probabilidadMovimiento;
 	int probabilidadAgua;
 
 	while(i==1){
-		if(idJuez==1){
-			pthread_mutex_lock(&controladorColaJueces);
-			if(colaJuez1[0]!=100){
-				atletaActual = colaJuez1[0];
-				for(j=1;j<10;j++){
-					colaJuez1[j-1]=colaJuez1[j];
+		
+		pthread_mutex_lock(&controladorColaJueces);
+		/*Buscamos en la cola el primer atleta que pertenezca a la tarima*/
+		for(j=0;j<10;j++){
+			if(colaJuez[j]!=100){
+				atletaActual=colaJuez[j];
+				if(punteroAtletas[atletaActual].tarimaAsignada==idJuez){
+					/*avanzamos la cola*/
+					for(k=1;k<10;j++){
+						colaJuez[k-1]=colaJuez[j];
+					}
+					break;
 				}
-				colaJuez1[9]=100;
-			}else if(colaJuez2[0]!=100){
-				atletaActual = colaJuez2[0];
-				for(j=1;j<10;j++){
-					colaJuez2[j-1]=colaJuez2[j];
-				}
-				colaJuez1[9]=100;
 			}
-			pthread_mutex_unlock(&controladorColaJueces);
-
-
-		}else{
-			pthread_mutex_lock(&controladorColaJueces);
-			if(colaJuez2[0]!=100){
-				atletaActual = colaJuez2[0];
-				for(j=1;j<10;j++){
-					colaJuez2[j-1]=colaJuez2[j];
-				}
-				colaJuez2[9]=100;
-			}else if(colaJuez1[0]!=100){
-				atletaActual = colaJuez1[0];
-				for(j=1;j<10;j++){
-					colaJuez1[j-1]=colaJuez1[j];
-				}
-				colaJuez1[9]=100;
-			}
-			pthread_mutex_unlock(&controladorColaJueces);
-
 		}
+		pthread_mutex_unlock(&controladorColaJueces);
+
 		if(atletaActual!=100){
 			probabilidadMovimiento=calculoAleatorio(10,1);
 			pthread_mutex_lock(&controladorEscritura);
@@ -144,41 +118,88 @@ void *accionesJuez(void* manejadora){
 			/*Movimiento valido*/
 			if(probabilidadMovimiento<9){
 				tiempoEnTarima=calculoAleatorio(6,2);
+				sleep(tiempoEnTarima);
 				puntuacionEjercicio=calculoAleatorio(300,60);
-				punteroAtletas[atletaActual].puntuacion=puntuacionEjercicio;
+				/*comprobamos si la posicion pertenece al podium*/
+				pthread_mutex_lock(&controladorPodium);
+				for(j=0;j<3;j++){
+					if(puntuacionEjercicio>mejoresPuntuaciones[j]){
+						/*guaradmos la puntuacion y el id en el podium*/
+						if(j==2){
+							mejoresPuntuaciones[j]=puntuacionEjercicio;
+							mejoresAtletas[j]=punteroAtletas[atletaActual].numeroAtleta;
+							break;
+						}else if(j==1){
+							mejoresPuntuaciones[j+1]=mejoresPuntuaciones[j];
+							mejoresPuntuaciones[j]=puntuacionEjercicio;
+
+							mejoresAtletas[j+1]=mejoresAtletas[j];
+							mejoresAtletas[j]=punteroAtletas[atletaActual].numeroAtleta;
+							break;
+						}else{
+							mejoresPuntuaciones[j+2]=mejoresPuntuaciones[j+1];
+							mejoresPuntuaciones[j+1]=mejoresPuntuaciones[j];
+							mejoresPuntuaciones[j]=puntuacionEjercicio;
+
+							mejoresAtletas[j+2]=mejoresAtletas[j+1];
+							mejoresAtletas[j+1]=mejoresAtletas[j];
+							mejoresAtletas[j]=punteroAtletas[atletaActual].numeroAtleta;
+							break;
+						}
+					}
+				}
+				pthread_mutex_unlock(&controladorPodium);
+
 				pthread_mutex_lock(&controladorEscritura);
 				sprintf(msg,"tiene una puntuacion de %d",punteroAtletas[atletaActual].puntuacion);
-				sprintf(id,"coche_%d",punteroAtletas[atletaActual].numeroAtleta);
+				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 				writeLogMessage(id,msg);
 				pthread_mutex_unlock(&controladorEscritura);
 				probabilidadAgua=calculoAleatorio(10,1);
 				if(probabilidadAgua==1){
 					punteroAtletas[atletaActual].deshidratado=1;
 				}
-
+				atletasAtendidos++;
 			}
 			/*Descalificado normativa*/
 			if(probabilidadMovimiento==9){
 				tiempoEnTarima=calculoAleatorio(4,1);
 				sleep(tiempoEnTarima);
-
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg,"ha sido descalificado por no cumplir la normativa",punteroAtletas[atletaActual].puntuacion);
+				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+				atletasAtendidos++;
 			}
 			/*Levantamiento fallido*/
 			if(probabilidadMovimiento==10){
 				tiempoEnTarima=calculoAleatorio(10,6);
 				sleep(tiempoEnTarima);
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg,"no ha realizado un movimiento válido",punteroAtletas[atletaActual].puntuacion);
+				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+				atletasAtendidos++;
 
 			}
-			if(atletasAtendidos%4){
+			punteroAtletas[atletaActual].ha_competido=1;
+			if(atletasAtendidos%4==0){
 				punteroJueces[idJuez].descansando=1;
 					/*escribo en el fichero*/
 				pthread_mutex_lock(&controladorEscritura);
-				sprintf(msg,"descansa");
+				sprintf(msg,"comienza el descanso");
 				sprintf(id,"juez_%d",idJuez);
 				writeLogMessage(id,msg);
 				pthread_mutex_unlock(&controladorEscritura);
 				sleep(10);
-				punteroJueces[idJuez].descansando=0;
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg,"finaliza el descanso");
+				sprintf(id,"juez_%d",idJuez);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+	
 
 			}
 		}
