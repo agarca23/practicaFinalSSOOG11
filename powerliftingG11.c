@@ -17,7 +17,7 @@
 int colaJuez[10];/*La cola guarda una referencia en cada posicion al coche que la ocupa*/
 int atletasIntroducidos;
 int mejoresPuntuaciones[3]={0,0,0};
-int mejoresAtletas[3]{100,100,100};
+int mejoresAtletas[3]={100,100,100};
 char id[10];
 char msg[100];
 pthread_t juez1;
@@ -64,6 +64,7 @@ int main(){
 	pthread_mutex_init(&controladorEscritura,NULL);
 
    	/*Inicializamos la cola, como no tenemos 100 atletas será nuestro valor de control*/
+   	int i;
 	for(i=0;i<NUMATLETAS;i++){
 		colaJuez[i]=100;
 	}
@@ -151,7 +152,7 @@ void *accionesJuez(void* manejadora){
 				pthread_mutex_unlock(&controladorPodium);
 
 				pthread_mutex_lock(&controladorEscritura);
-				sprintf(msg,"tiene una puntuacion de %d",punteroAtletas[atletaActual].puntuacion);
+				sprintf(msg,"tiene una puntuacion de %d",puntuacionEjercicio);
 				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 				writeLogMessage(id,msg);
 				pthread_mutex_unlock(&controladorEscritura);
@@ -166,7 +167,7 @@ void *accionesJuez(void* manejadora){
 				tiempoEnTarima=calculoAleatorio(4,1);
 				sleep(tiempoEnTarima);
 				pthread_mutex_lock(&controladorEscritura);
-				sprintf(msg,"ha sido descalificado por no cumplir la normativa",punteroAtletas[atletaActual].puntuacion);
+				sprintf(msg,"ha sido descalificado por no cumplir la normativa");
 				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 				writeLogMessage(id,msg);
 				pthread_mutex_unlock(&controladorEscritura);
@@ -177,7 +178,7 @@ void *accionesJuez(void* manejadora){
 				tiempoEnTarima=calculoAleatorio(10,6);
 				sleep(tiempoEnTarima);
 				pthread_mutex_lock(&controladorEscritura);
-				sprintf(msg,"no ha realizado un movimiento válido",punteroAtletas[atletaActual].puntuacion);
+				sprintf(msg,"no ha realizado un movimiento válido");
 				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 				writeLogMessage(id,msg);
 				pthread_mutex_unlock(&controladorEscritura);
@@ -186,8 +187,6 @@ void *accionesJuez(void* manejadora){
 			}
 			punteroAtletas[atletaActual].ha_competido=1;
 			if(atletasAtendidos%4==0){
-				punteroJueces[idJuez].descansando=1;
-					/*escribo en el fichero*/
 				pthread_mutex_lock(&controladorEscritura);
 				sprintf(msg,"comienza el descanso");
 				sprintf(id,"juez_%d",idJuez);
