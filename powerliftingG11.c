@@ -152,6 +152,8 @@ void nuevoCompetidorATarima1(int a){
 			}
 		}
 	}
+	pthread_mutex_unlock(&controladorEntrada);
+
 	
 }
 
@@ -192,6 +194,8 @@ void nuevoCompetidorATarima2(int a){
 			}
 		}
 	}
+	pthread_mutex_unlock(&controladorEntrada);
+
 	
 }
 
