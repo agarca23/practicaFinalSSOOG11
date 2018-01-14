@@ -31,7 +31,7 @@ void inicializarAtleta(int posicionPuntero, int numeroAtleta, int deshidratado, 
 void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
-void *accionesFuente(void* manejadora);
+void accionesFuente();
 void *accionesAtleta(void* manejadora);
 
 
@@ -54,7 +54,6 @@ pthread_mutex_t controladorJuez1;/*contralara que dos atletas de la cola no inte
 pthread_mutex_t controladorJuez2;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
 pthread_mutex_t controladorPodium;
 pthread_mutex_t controladorEscritura;/*controlara que no mas de dos atletas o jueces intenten escribir en el fichero*/
-pthread_mutex_t controladorFuente; /*controlara que no mas de 2 atletas utilicen la fuente a la vez*/
 
 FILE *logFile;
 char* logFileName ="registro.log";
@@ -317,29 +316,8 @@ void writeLogMessage(char *id,char *msg){
 		
 }
 
-void *accionesFuente(void* manejadora){
-	int atletaActual;
-	int i = 1;
-	int j;
-	while(i == 1){
-		pthread_mutex_lock(&controladorFuente);
-		atletaActual = colaFuente[0];
-		for (j = 1; i < 2; i++)
-		{
-			colaFuente[j - 1] = colaFuente[j];
-		}
-		colaFuente[2] = 100;
-		pthread_mutex_unlock(&controladorFuente);
-
-		if(atletaActual != 100){
-			pthread_mutex_lock(&controladorEscritura);
-			sprintf(msg, "entra en la fuente el atleta");
-			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-			writeLogMessage(id,msg);
-			pthread_mutex_unlock(&controladorEscritura);
-		}
-		
-	}
+void accionesFuente(){
+	
 }
 
 
