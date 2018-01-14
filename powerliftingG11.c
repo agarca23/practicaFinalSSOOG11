@@ -265,6 +265,12 @@ void *accionesAtleta(void* manejadora){
 	int subeTarima = 0;
 	int enEspera=0; //Este es el tiempo que el atleta lleva en espera en una tarima
 
+	pthread_mutex_lock(&controladorEscritura);
+	sprintf(msg, "Ha llegado a la tarima %d el atleta",punteroAtletas[atletaActual].tarimaAsignada);
+	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+	writeLogMessage(id,msg);
+	pthread_mutex_unlock(&controladorEscritura);
+
 	while(subeTarima == 0){
 
 		comportamiento = numeroAleatorio(0,19);
@@ -278,6 +284,11 @@ void *accionesAtleta(void* manejadora){
 			exit(0);
 
 		}else{
+
+			if(tarima está libre){
+				subeTarima=1;
+			}
+
 			sleep(3);
 			enEspera = enEspera+3;
 		}	
@@ -286,7 +297,7 @@ void *accionesAtleta(void* manejadora){
 	//Si llega hasta aquí es que no ha tenido ningún problema de salud.
 
 	pthread_mutex_lock(&controladorEscritura);
-	sprintf(msg, "Va a competir el atleta",punteroAtletas[atletaActual].tarimaAsignada);
+	sprintf(msg, "Va a competir el atleta");
 	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 	writeLogMessage(id,msg);
 	pthread_mutex_unlock(&controladorEscritura);
@@ -326,7 +337,7 @@ void *accionesAtleta(void* manejadora){
 		pthread_mutex_unlock(&controladorEscritura);
 	}
 
-	sleep(tiempoEspera);7
+	sleep(tiempoEspera);
 	pthread_mutex_lock(&controladorEscritura);
 	sprintf(msg, "Finalizado el ejercicio por parte del atleta ");
 	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
