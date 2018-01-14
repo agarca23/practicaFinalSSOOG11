@@ -31,7 +31,7 @@ void inicializarAtleta(int posicionPuntero, int numeroAtleta, int deshidratado, 
 void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
-void accionesFuente();
+void accionesFuente(int atletaActual);
 void *accionesAtleta(void* manejadora);
 
 
@@ -350,8 +350,45 @@ void writeLogMessage(char *id,char *msg){
 		
 }
 
-void accionesFuente(){
-	
+void accionesFuente(int atletaActual){
+	int i;
+	int temporal;
+	int tiempoEsperaFuente;
+
+	for (i = 0; i < 2; i++)
+	{
+		if (punteroAtletas[atletaActual].deshidratado == 1)
+		{
+			punteroAtletas[atletaActual].numeroAtleta = colaFuente[i];
+			pthread_mutex_lock(&controladorEscritura);
+			sprintf(msg, "Ha llegado a la fuente");
+			sprintf(id, "el atleta %d", punteroAtletas[atletaActual].numeroAtleta);
+			pthread_mutex_unlock(&controladorEscritura);
+		} else{
+			if (i == 2)
+			{
+				fuenteOcupada = 1;
+			}
+		}
+	}
+
+	while(fuenteOcupada == 0 && i == 1){
+		tiempoEsperaFuente++;
+	}
+
+	do{
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg, "El atleta %d va a beber de la fuente ayudado por el atleta %d", colaFuente[0], colaFuente[1]);
+		sprintf(msg, "El atleta %d abandona la fuente porque ya ha bebido", colaFuente[0]);
+		pthread_mutex_unlock(&controladorEscritura);
+		temporal = colaFuente[1];
+		colaFuente[1] = colaFuente[0];
+		colaFuente[0] = temporal;
+		colaFuente[1] = NULL;
+
+		fuenteOcupada = 0;
+
+	} while(fuenteOcupada == 1);	
 }
 
 
