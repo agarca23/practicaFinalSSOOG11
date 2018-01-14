@@ -79,7 +79,7 @@ int main(){
 
 	/*Reservamos memoria para los atletas*/
 	punteroAtletas = (struct atletas*)malloc(sizeof(struct atletas)*NUMATLETAS);
-   	int i;
+   	int i,j;
    	for(i=0;i<NUMATLETAS;i++){
     	punteroAtletas[i].numeroAtleta=0;
 		punteroAtletas[i].deshidratado=0;
@@ -96,8 +96,8 @@ int main(){
    	/*Lanzamos losjueces*/
 	i=1;
 	pthread_create(&juez1, NULL, accionesJuez,(void*)&i);
-	i=2;	
-	pthread_create(&juez2, NULL, accionesJuez,(void*)&i);
+	j=2;	
+	pthread_create(&juez2, NULL, accionesJuez,(void*)&j);
 
 		/*inicializar el archivo, lo creo si no existe y sino lo sobreescribo*/
 	logFile = fopen(logFileName,"w");
@@ -373,11 +373,24 @@ void *accionesAtleta(void* manejadora){
 	//Si el atleta llega a la tarima, espera 4 segundos para realizar su levantamiento.
 	sleep(4);
 
-	while(subeTarima == 0){
+	while(punteroAtletas[atletaActual].ha_competido == 0){
 
 		comportamiento = calculoAleatorio(19,0);
 		if(comportamiento<3){
-			
+			int i,j;
+			pthread_mutex_lock(&controladorColaJueces);
+			/*Dejamos hueco libre y avanzamos la cola*/
+			for(i=0;i<10;i++){
+				if(colaJuez[i]==atletaActual){
+
+					for(j=i+1;j<10;j++){
+						colaJuez[j-1]=colaJuez[j];
+					}
+					colaJuez[9]=100;
+					break;
+				}
+			}
+			pthread_mutex_lock(&controladorColaJueces);
 			pthread_mutex_lock(&controladorEscritura);
 			sprintf(msg, "Un atleta ha tenido un problema y no va a poder subir a la tarima: ");
 			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
@@ -388,65 +401,14 @@ void *accionesAtleta(void* manejadora){
 
 		}else{
 
-			if(tarima está libre){
-				subeTarima=1;
-			}
 
 			sleep(3);
 			enEspera = enEspera+3;
 		}	
 	}
 
-	//Si llega hasta aquí es que no ha tenido ningún problema de salud.
-
-	pthread_mutex_lock(&controladorEscritura);
-	sprintf(msg, "Va a competir el atleta");
-	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-	writeLogMessage(id,msg);
-	pthread_mutex_unlock(&controladorEscritura);
-
-	comportamiento = calculoAleatorio(9,0);
-	if(comportamiento<8){
-		//movimiento válido
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg, "Movimiento válido por parte del atleta ");
-		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-		writeLogMessage(id,msg);
-		pthread_mutex_unlock(&controladorEscritura);
-		punteroAtletas[atletaActual].ha_competido = 1;
-		tiempoEspera = calculoAleatorio(6,2);
-
-	}
-
-	if(comportamiento==9){
-		//falta de fuerza
-		tiempoEspera = calculoAleatorio(10,6);
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg, "No ha sido capaz de realizar la prueba correctamente el atleta ");
-		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-		writeLogMessage(id,msg);
-		pthread_mutex_unlock(&controladorEscritura);
+	/*Comprueba si debe asistir a la fuente*/
 
 
-	}
-
-	if(comportamiento==8){
-	//incumplimiento de normativa
-		tiempoEspera = calculoAleatorio(4,1);
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg, "Incumplimiento de la normativa por parte del atleta ");
-		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-		writeLogMessage(id,msg);
-		pthread_mutex_unlock(&controladorEscritura);
-	}
-
-	sleep(tiempoEspera);
-	pthread_mutex_lock(&controladorEscritura);
-	sprintf(msg, "Finalizado el ejercicio por parte del atleta ");
-	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-	writeLogMessage(id,msg);
-	pthread_mutex_unlock(&controladorEscritura);
-
-	exit(0);
 
 }
