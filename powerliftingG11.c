@@ -30,6 +30,7 @@ void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
 void *accionesFuente(void* manejadora);
+void *accionesAtleta(void* manejadora);
 
 
 struct atletas{
@@ -257,3 +258,81 @@ int calculoAleatorio(int max, int min){
 	return numeroAleatorio;
 }
 
+void *accionesAtleta(void* manejadora){
+
+	int comportamiento;
+	int tiempoEspera;
+	int subeTarima = 0;
+	int enEspera=0; //Este es el tiempo que el atleta lleva en espera en una tarima
+
+	while(subeTarima == 0){
+
+		comportamiento = numeroAleatorio(0,19);
+		if(comportamiento<3){
+			pthread_mutex_lock(&controladorEscritura);
+			sprintf(msg, "Un atleta ha tenido un problema y no va a poder subir a la tarima: ");
+			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+			writeLogMessage(id,msg);
+			pthread_mutex_unlock(&controladorEscritura);
+
+			exit(0);
+
+		}else{
+			sleep(3);
+			enEspera = enEspera+3;
+		}	
+	}
+
+	//Si llega hasta aquí es que no ha tenido ningún problema de salud.
+
+	pthread_mutex_lock(&controladorEscritura);
+	sprintf(msg, "Va a competir el atleta",punteroAtletas[atletaActual].tarimaAsignada);
+	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+	writeLogMessage(id,msg);
+	pthread_mutex_unlock(&controladorEscritura);
+
+	comportamiento = numeroAleatorio(0,9);
+	if(comportamiento<8){
+		//movimiento válido
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg, "Movimiento válido por parte del atleta ");
+		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+		writeLogMessage(id,msg);
+		pthread_mutex_unlock(&controladorEscritura);
+		punteroAtletas[atletaActual].ha_competido = 1;
+		tiempoEspera = numeroAleatorio(2,6);
+
+	}
+
+	if(comportamiento==9){
+		//falta de fuerza
+		tiempoEspera = numeroAleatorio(6,10);
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg, "No ha sido capaz de realizar la prueba correctamente el atleta ");
+		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+		writeLogMessage(id,msg);
+		pthread_mutex_unlock(&controladorEscritura);
+
+
+	}
+
+	if(comportamiento==8){
+	//incumplimiento de normativa
+		tiempoEspera = numeroAleatorio(1,4);
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg, "Incumplimiento de la normativa por parte del atleta ");
+		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+		writeLogMessage(id,msg);
+		pthread_mutex_unlock(&controladorEscritura);
+	}
+
+	sleep(tiempoEspera);7
+	pthread_mutex_lock(&controladorEscritura);
+	sprintf(msg, "Finalizado el ejercicio por parte del atleta ");
+	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+	writeLogMessage(id,msg);
+	pthread_mutex_unlock(&controladorEscritura);
+
+	exit(0);
+
+}
