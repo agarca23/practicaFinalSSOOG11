@@ -116,13 +116,23 @@ void nuevoCompetidorATarima1(int a){
 	pthread_mutex_lock(&controladorEntrada);
 	if(atletasIntroducidos<NUMATLETAS){
 		atletasIntroducidos++;
-		int i;
+		int i,j;
 
 		for(i=0;i<NUMATLETAS;i++){
 			if(punteroAtletas[i].numeroAtleta==0){
 				inicializarAtleta(i,atletasIntroducidos,0,0,1);
 
 				pthread_create(&punteroAtletas[i].hiloAtleta,NULL,accionesAtleta,(void*)&punteroAtletas[i].numeroAtleta);
+				/*Añadimos el atleta a la cola*/
+				pthread_mutex_lock(&controladorColaJueces);
+				for(j=0;j<10;j++){
+					if(colaJuez[j]!=100){
+						colaJuez[j]=i;
+						break;
+					}
+				}
+				pthread_mutex_unlock(&controladorColaJueces);
+
 				pthread_mutex_lock(&controladorEscritura);
 				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
 				sprintf(msg,"entra el ");
@@ -146,13 +156,22 @@ void nuevoCompetidorATarima2(int a){
 	pthread_mutex_lock(&controladorEntrada);
 	if(atletasIntroducidos<NUMATLETAS){
 		atletasIntroducidos++;
-		int i;
+		int i,j;
 
 		for(i=0;i<NUMATLETAS;i++){
 			if(punteroAtletas[i].numeroAtleta==0){
 				inicializarAtleta(i,atletasIntroducidos,0,0,2);
 
 				pthread_create(&punteroAtletas[i].hiloAtleta,NULL,accionesAtleta,(void*)&punteroAtletas[i].numeroAtleta);
+
+				pthread_mutex_lock(&controladorColaJueces);
+				for(j=0;j<10;j++){
+					if(colaJuez[j]!=100){
+						colaJuez[j]=i;
+						break;
+					}
+				}
+				pthread_mutex_unlock(&controladorColaJueces);
 				pthread_mutex_lock(&controladorEscritura);
 				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
 				sprintf(msg,"entra el ");
