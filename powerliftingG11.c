@@ -98,6 +98,16 @@ int main(){
 	pthread_create(&juez1, NULL, accionesJuez,(void*)&i);
 	i=2;	
 	pthread_create(&juez2, NULL, accionesJuez,(void*)&i);
+
+		/*inicializar el archivo, lo creo si no existe y sino lo sobreescribo*/
+	logFile = fopen(logFileName,"w");
+	if(logFile==NULL){
+		char *err=strerror(errno);
+		printf("%s", err);
+		fclose(logFile);
+	}
+	writeLogMessage("","bienvenido a powerLiftingC\n");
+
 	while(1){
 		pause();
 	}
@@ -214,8 +224,8 @@ void *accionesJuez(void* manejadora){
 				atletaActual=colaJuez[j];
 				if(punteroAtletas[atletaActual].tarimaAsignada==idJuez){
 					/*avanzamos la cola*/
-					for(k=1;k<10;j++){
-						colaJuez[k-1]=colaJuez[j];
+					for(k=1;k<10;k++){
+						colaJuez[k-1]=colaJuez[k];
 					}
 					break;
 				}
@@ -348,7 +358,7 @@ int calculoAleatorio(int max, int min){
 }
 
 void *accionesAtleta(void* manejadora){
-
+	int atletaActual=*(int*)manejadora;
 	int comportamiento;
 	int tiempoEspera;
 	int subeTarima = 0;
@@ -365,7 +375,7 @@ void *accionesAtleta(void* manejadora){
 
 	while(subeTarima == 0){
 
-		comportamiento = numeroAleatorio(0,19);
+		comportamiento = calculoAleatorio(19,0);
 		if(comportamiento<3){
 			
 			pthread_mutex_lock(&controladorEscritura);
@@ -395,7 +405,7 @@ void *accionesAtleta(void* manejadora){
 	writeLogMessage(id,msg);
 	pthread_mutex_unlock(&controladorEscritura);
 
-	comportamiento = numeroAleatorio(0,9);
+	comportamiento = calculoAleatorio(9,0);
 	if(comportamiento<8){
 		//movimiento válido
 		pthread_mutex_lock(&controladorEscritura);
@@ -404,13 +414,13 @@ void *accionesAtleta(void* manejadora){
 		writeLogMessage(id,msg);
 		pthread_mutex_unlock(&controladorEscritura);
 		punteroAtletas[atletaActual].ha_competido = 1;
-		tiempoEspera = numeroAleatorio(2,6);
+		tiempoEspera = calculoAleatorio(6,2);
 
 	}
 
 	if(comportamiento==9){
 		//falta de fuerza
-		tiempoEspera = numeroAleatorio(6,10);
+		tiempoEspera = calculoAleatorio(10,6);
 		pthread_mutex_lock(&controladorEscritura);
 		sprintf(msg, "No ha sido capaz de realizar la prueba correctamente el atleta ");
 		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
@@ -422,7 +432,7 @@ void *accionesAtleta(void* manejadora){
 
 	if(comportamiento==8){
 	//incumplimiento de normativa
-		tiempoEspera = numeroAleatorio(1,4);
+		tiempoEspera = calculoAleatorio(4,1);
 		pthread_mutex_lock(&controladorEscritura);
 		sprintf(msg, "Incumplimiento de la normativa por parte del atleta ");
 		sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
