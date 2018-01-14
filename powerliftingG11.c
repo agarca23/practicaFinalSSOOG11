@@ -135,8 +135,9 @@ void nuevoCompetidorATarima1(int a){
 				/*Añadimos el atleta a la cola*/
 				pthread_mutex_lock(&controladorColaJueces);
 				for(j=0;j<10;j++){
-					if(colaJuez[j]!=100){
+					if(colaJuez[j]==100){
 						colaJuez[j]=i;
+
 						break;
 					}
 				}
@@ -177,8 +178,9 @@ void nuevoCompetidorATarima2(int a){
 
 				pthread_mutex_lock(&controladorColaJueces);
 				for(j=0;j<10;j++){
-					if(colaJuez[j]!=100){
+					if(colaJuez[j]==100){
 						colaJuez[j]=i;
+
 						break;
 					}
 				}
@@ -221,7 +223,7 @@ void *accionesJuez(void* manejadora){
 	int probabilidadAgua;
 
 	while(i==1){
-		
+		atletaActual=100;
 		pthread_mutex_lock(&controladorColaJueces);
 		/*Buscamos en la cola el primer atleta que pertenezca a la tarima*/
 		for(j=0;j<10;j++){
@@ -229,16 +231,19 @@ void *accionesJuez(void* manejadora){
 				atletaActual=colaJuez[j];
 				if(punteroAtletas[atletaActual].tarimaAsignada==idJuez){
 					/*avanzamos la cola*/
-					for(k=1;k<10;k++){
-						colaJuez[k-1]=colaJuez[k];
+					for(k=j;k<10;k++){
+						if(k<9){
+							colaJuez[k]=colaJuez[k+1];
+						}
 					}
+					colaJuez[9]=100;
 					break;
 				}
 			}
 		}
 		pthread_mutex_unlock(&controladorColaJueces);
 
-		if(atletaActual!=100){
+		if(atletaActual!=100&&punteroAtletas[atletaActual].tarimaAsignada==idJuez){
 			probabilidadMovimiento=calculoAleatorio(10,1);
 			pthread_mutex_lock(&controladorEscritura);
 			sprintf(msg,"entra en la tarima %d",idJuez);
