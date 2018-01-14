@@ -56,7 +56,7 @@ pthread_mutex_t controladorPodium;
 pthread_mutex_t controladorEscritura;/*controlara que no mas de dos atletas o jueces intenten escribir en el fichero*/
 
 FILE *logFile;
-char* logFileName ="registro.log";
+char* logFileName ="registroTiempos.log";
 
 
 int main(){
@@ -142,12 +142,12 @@ void nuevoCompetidorATarima1(int a){
 				}
 				pthread_mutex_unlock(&controladorColaJueces);
 
-				pthread_mutex_lock(&controladorEscritura);
+/*				pthread_mutex_lock(&controladorEscritura);
 				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
 				sprintf(msg,"entra el ");
 				writeLogMessage(msg,id);
 				pthread_mutex_unlock(&controladorEscritura);
-
+*/
 				break;
 			}
 		}
@@ -181,11 +181,12 @@ void nuevoCompetidorATarima2(int a){
 					}
 				}
 				pthread_mutex_unlock(&controladorColaJueces);
-				pthread_mutex_lock(&controladorEscritura);
+/*				pthread_mutex_lock(&controladorEscritura);
 				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
 				sprintf(msg,"entra el ");
 				writeLogMessage(msg,id);
 				pthread_mutex_unlock(&controladorEscritura);
+*/
 
 				break;
 			}
@@ -358,14 +359,14 @@ int calculoAleatorio(int max, int min){
 }
 
 void *accionesAtleta(void* manejadora){
-	int atletaActual=*(int*)manejadora;
+	int atletaActual=*(int*)manejadora-1;
 	int comportamiento;
 	int tiempoEspera;
 	int subeTarima = 0;
 	int enEspera=0; //Este es el tiempo que el atleta lleva en espera en una tarima
 
 	pthread_mutex_lock(&controladorEscritura);
-	sprintf(msg, "Ha llegado a la tarima %d el atleta",punteroAtletas[atletaActual].tarimaAsignada);
+	sprintf(msg, "Ha llegado a la tarima %d",punteroAtletas[atletaActual].tarimaAsignada);
 	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 	writeLogMessage(id,msg);
 	pthread_mutex_unlock(&controladorEscritura);
@@ -390,15 +391,14 @@ void *accionesAtleta(void* manejadora){
 					break;
 				}
 			}
-			pthread_mutex_lock(&controladorColaJueces);
+			pthread_mutex_unlock(&controladorColaJueces);
 			pthread_mutex_lock(&controladorEscritura);
-			sprintf(msg, "Un atleta ha tenido un problema y no va a poder subir a la tarima: ");
+			sprintf(msg, "Ha tenido un problema y no va a poder subir a la tarima");
 			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
 			writeLogMessage(id,msg);
 			pthread_mutex_unlock(&controladorEscritura);
 
-			exit(0);
-
+			pthread_exit(NULL);
 		}else{
 
 
@@ -410,5 +410,9 @@ void *accionesAtleta(void* manejadora){
 	/*Comprueba si debe asistir a la fuente*/
 
 
+
+
+
+	pthread_exit(NULL);
 
 }
