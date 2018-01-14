@@ -18,6 +18,7 @@ int colaJuez[10];/*La cola guarda una referencia en cada posicion al coche que l
 int atletasIntroducidos;
 int mejoresPuntuaciones[3]={0,0,0};
 int mejoresAtletas[3]={100,100,100};
+int fuenteOcupada;
 char id[10];
 char msg[100];
 pthread_t juez1;
@@ -27,6 +28,7 @@ pthread_t juez2;
 void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
+void *accionesFuente(void* manejadora);
 
 
 struct atletas{
@@ -45,8 +47,8 @@ pthread_mutex_t controladorColaJueces;/*controla que no entren a la cola dos atl
 pthread_mutex_t controladorJuez1;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
 pthread_mutex_t controladorJuez2;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
 pthread_mutex_t controladorPodium;
-pthread_mutex_t controladorEscritura;/*controlara que no mas de dos coches intenten escribir en el fichero*/
-
+pthread_mutex_t controladorEscritura;/*controlara que no mas de dos atletas o jueces intenten escribir en el fichero*/
+pthread_mutex_t controladorFuente; /*controlara que no mas de 2 atletas utilicen la fuente a la vez*/
 
 FILE *logFile;
 char* logFileName ="registro.log";
@@ -221,7 +223,10 @@ void writeLogMessage(char *id,char *msg){
 		
 }
 
-
+void *accionesFuente(void* manejadora){
+	int atletaActual;
+	
+}
 
 
 int calculoAleatorio(int max, int min){
@@ -230,3 +235,4 @@ int calculoAleatorio(int max, int min){
 	int numeroAleatorio = rand()%((max+1)-min)+min;
 	return numeroAleatorio;
 }
+
