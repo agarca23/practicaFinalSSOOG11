@@ -271,10 +271,14 @@ void *accionesAtleta(void* manejadora){
 	writeLogMessage(id,msg);
 	pthread_mutex_unlock(&controladorEscritura);
 
+	//Si el atleta llega a la tarima, espera 4 segundos para realizar su levantamiento.
+	sleep(4);
+
 	while(subeTarima == 0){
 
 		comportamiento = numeroAleatorio(0,19);
 		if(comportamiento<3){
+			
 			pthread_mutex_lock(&controladorEscritura);
 			sprintf(msg, "Un atleta ha tenido un problema y no va a poder subir a la tarima: ");
 			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
