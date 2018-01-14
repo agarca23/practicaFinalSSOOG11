@@ -15,6 +15,7 @@
 #define NUMATLETAS 10
 
 int colaJuez[10];/*La cola guarda una referencia en cada posicion al coche que la ocupa*/
+int colaFuente[2];
 int atletasIntroducidos;
 int mejoresPuntuaciones[3]={0,0,0};
 int mejoresAtletas[3]={100,100,100};
@@ -225,7 +226,27 @@ void writeLogMessage(char *id,char *msg){
 
 void *accionesFuente(void* manejadora){
 	int atletaActual;
-	
+	int i = 1;
+	int j;
+	while(i == 1){
+		pthread_mutex_lock(&controladorFuente);
+		atletaActual = colaFuente[0];
+		for (j = 1; i < 2; i++)
+		{
+			colaFuente[j - 1] = colaFuente[j];
+		}
+		colaFuente[2] = 100;
+		pthread_mutex_unlock(&controladorFuente);
+
+		if(atletaActual != 100){
+			pthread_mutex_lock(&controladorEscritura);
+			sprintf(msg, "entra en la fuente el atleta");
+			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+			writeLogMessage(id,msg);
+			pthread_mutex_unlock(&controladorEscritura);
+		}
+		
+	}
 }
 
 
