@@ -486,21 +486,22 @@ void *accionesFuente(void* manejadora){
 			sprintf(id,"atleta_%d",punteroAtletas[atletaBoton].numeroAtleta);
 			writeLogMessage(id,msg);
 			pthread_mutex_unlock(&controladorEscritura);
+
+			/*Avanzamos la cola*/
+			pthread_mutex_lock(&controladorColaFuente);
+
+			for(i=0;i<9;i++){
+
+				colaFuente[i]=colaFuente[i+1];
+			}
+
+			colaFuente[9]=100;
+			pthread_mutex_lock(&controladorFuente);
+			fuenteOcupada=0;
+			pthread_mutex_unlock(&controladorFuente);
+			pthread_mutex_unlock(&controladorColaFuente);
+
 		}
-
-		/*Avanzamos la cola*/
-		pthread_mutex_lock(&controladorColaFuente);
-
-		for(i=0;i<9;i++){
-
-			colaFuente[i]=colaFuente[i+1];
-		}
-
-		colaFuente[9]=100;
-		pthread_mutex_lock(&controladorFuente);
-		fuenteOcupada=0;
-		pthread_mutex_unlock(&controladorFuente);
-		pthread_mutex_unlock(&controladorColaFuente);
 
 	}
 		
