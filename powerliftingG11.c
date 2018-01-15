@@ -452,12 +452,8 @@ void *accionesAtleta(void* manejadora){
 	}
 	pthread_mutex_unlock(&controladorColaJueces);
 
-	while(punteroAtletas[atletaActual].ha_competido == 1){
-		if (punteroAtletas[atletaActual].necesita_beber == 1)
-		{
-			accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
-		}
-	}
+	
+	
 	while(punteroAtletas[atletaActual].ha_competido == 0){
 
 		comportamiento = calculoAleatorio(19,0);
@@ -492,7 +488,10 @@ void *accionesAtleta(void* manejadora){
 	}
 
 	/*Comprueba si debe asistir a la fuente*/
-	
+	if (punteroAtletas[atletaActual].necesita_beber == 1)
+		{
+			accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
+		}
 	
 
 
