@@ -146,23 +146,7 @@ void nuevoCompetidorATarima1(int a){
 				inicializarAtleta(i,atletasIntroducidos,0,0,1);
 
 				pthread_create(&punteroAtletas[i].hiloAtleta,NULL,accionesAtleta,(void*)&punteroAtletas[i].numeroAtleta);
-				/*Añadimos el atleta a la cola*/
-				/*pthread_mutex_lock(&controladorColaJueces);
-				for(j=0;j<10;j++){
-					if(colaJuez[j]==100){
-						colaJuez[j]=i;
 
-						break;
-					}
-				}
-				pthread_mutex_unlock(&controladorColaJueces);*/
-
-/*				pthread_mutex_lock(&controladorEscritura);
-				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
-				sprintf(msg,"entra el ");
-				writeLogMessage(msg,id);
-				pthread_mutex_unlock(&controladorEscritura);
-*/
 				break;
 			}
 		}
@@ -190,13 +174,6 @@ void nuevoCompetidorATarima2(int a){
 
 				pthread_create(&punteroAtletas[i].hiloAtleta,NULL,accionesAtleta,(void*)&punteroAtletas[i].numeroAtleta);
 
-
-/*				pthread_mutex_lock(&controladorEscritura);
-				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
-				sprintf(msg,"entra el ");
-				writeLogMessage(msg,id);
-				pthread_mutex_unlock(&controladorEscritura);
-*/
 
 				break;
 			}
@@ -463,18 +440,18 @@ void *accionesFuente(void* manejadora){
 
 	while(1){
 		pthread_mutex_lock(&controladorColaFuente);
-		//printf("Voy a ver si hay alguien a la cola\n");
+
 		if (colaFuente[0] != 100 && colaFuente[1] != 100)
 		{
 			atletaBebe = colaFuente[0];
 			atletaBoton = colaFuente[1];
-			//printf("Soy la fuente y cogo a los atletas\n");
+
 			pthread_mutex_lock(&controladorFuente);
 			fuenteOcupada = 1;
 			pthread_mutex_unlock(&controladorFuente);
 		}
 		pthread_mutex_unlock(&controladorColaFuente);
-		//printf("Voy a ver si alguien bebe");
+
 		if(atletaBebe!=100){
 
 			punteroAtletas[atletaBebe].necesita_beber=0;
