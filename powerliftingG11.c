@@ -294,7 +294,8 @@ void *accionesJuez(void* manejadora){
 				writeLogMessage(id,msg);
 				pthread_mutex_unlock(&controladorEscritura);
 				probabilidadAgua=calculoAleatorio(10,1);
-				if(probabilidadAgua<9){
+
+				if(probabilidadAgua==10){
 					punteroAtletas[atletaActual].necesita_beber=1;
 					
 				} 
@@ -373,7 +374,7 @@ void *accionesFuente(void* manejadora){
 		{
 			atletaBebe = colaFuente[0];
 			atletaBoton = colaFuente[1];
-			//printf("Soy la fuente y cogo a los atletas\n");
+			printf("Soy la fuente y cogo a los atletas\n");
 			pthread_mutex_lock(&controladorFuente);
 			fuenteOcupada = 1;
 			pthread_mutex_unlock(&controladorFuente);
@@ -490,7 +491,7 @@ void *accionesAtleta(void* manejadora){
 		int j;
 		for(j=0;j<10;j++){
 			if(colaFuente[j]==100){
-				colaJuez[j]=atletaActual;
+				colaFuente[j]=atletaActual;
 				//printf("Añado atleta fuente posicion%d\n",j );
 				pthread_mutex_lock(&controladorEscritura);
 				sprintf(msg, "se va a la fuente");
