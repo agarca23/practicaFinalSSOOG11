@@ -289,6 +289,7 @@ void *accionesJuez(void* manejadora){
 				probabilidadAgua=calculoAleatorio(10,1);
 				if(probabilidadAgua==1){
 					punteroAtletas[atletaActual].necesita_beber=1;
+					
 				}
 				atletasAtendidos++;
 			}
@@ -356,41 +357,61 @@ void accionesFuente(int atletaActual){
 	int i;
 	int temporal;
 	int tiempoEsperaFuente;
+	int atletasIntroducidos = 0;
 
 	for (i = 0; i < 2; i++)
 	{
-		if (punteroAtletas[atletaActual].necesita_beber == 1)	/*Se añade los atletas a la cola para beber */
+		if (colaFuente[i] != 100)	/*Se añade los atletas a la cola para beber */
 		{
 			punteroAtletas[atletaActual].numeroAtleta = colaFuente[i];
+			atletasIntroducidos++;
 			pthread_mutex_lock(&controladorEscritura);
 			sprintf(msg, "Ha llegado a la fuente");
 			sprintf(id, "el atleta %d", punteroAtletas[atletaActual].numeroAtleta);
 			pthread_mutex_unlock(&controladorEscritura);
 		} else{
-			if (i == 2) /*Cuando hay dos atletas en la fuente, se bloquea el acceso a la fuente*/
+			if (colaFuente[i] == 100)
 			{
-				fuenteOcupada = 1;
+				punteroAtletas[atletaActual].numeroAtleta = colaFuente[i];
+			}else{
+				if (atletasIntroducidos == 2) /*Cuando hay dos atletas en la fuente, se bloquea el acceso a la fuente*/
+				{
+					fuenteOcupada = 1;
+				}
 			}
+			
 		}
 	}
 
-	while(fuenteOcupada == 0 && i == 1){	/* Mientras no haya dos atletas en la fuente, se va contando el tiempo que esta esperando el atleta por si finaliza la competición para añadirlo al log*/
+	while(fuenteOcupada == 0 && atletasIntroducidos == 1){	/* Mientras no haya dos atletas en la fuente, se va contando el tiempo que esta esperando el atleta por si finaliza la competición para añadirlo al log*/
 		tiempoEsperaFuente++;
 	}
 
-	do{
+	while(fuenteOcupada == 1){
 		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg, "El atleta %d va a beber de la fuente ayudado por el atleta %d", colaFuente[0], colaFuente[1]);
-		sprintf(msg, "El atleta %d abandona la fuente porque ya ha bebido", colaFuente[0]);
+		sprintf(msg, "El atleta");
+		sprintf(id, "%d va a beber",colaFuente[0]);
 		pthread_mutex_unlock(&controladorEscritura);
+
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg,"ayudado por el atleta");
+		sprintf(id, "%d",colaFuente[1]);
+		pthread_mutex_unlock(&controladorEscritura);
+
+		pthread_mutex_lock(&controladorEscritura);
+		sprintf(msg, "El atleta");
+		sprintf(id, "%d abandona la fuente porque ya ha bebido", colaFuente[0]);
+		pthread_mutex_unlock(&controladorEscritura);
+
 		temporal = colaFuente[1];
 		colaFuente[1] = colaFuente[0];	/*Se intercambian los valores y se deja un hueco libre en la cola para el siguiente atleta*/
 		colaFuente[0] = temporal;
-		colaFuente[1] = NULL;
+		colaFuente[1] = 100;
 
+		atletasIntroducidos--;
 		fuenteOcupada = 0;
 
-	} while(fuenteOcupada == 1);	
+	}	
 	
 }
 
@@ -464,10 +485,10 @@ void *accionesAtleta(void* manejadora){
 	}
 
 	/*Comprueba si debe asistir a la fuente*/
-	if (punteroAtletas[atletaActual].necesita_beber == 1)
+	/*if (punteroAtletas[atletaActual].necesita_beber == 1)
 	{
 		accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
-	}
+	}*/
 
 
 
