@@ -15,7 +15,7 @@
 #define NUMATLETAS 10
 
 int colaJuez[10];/*La cola guarda una referencia en cada posicion al coche que la ocupa*/
-int colaFuente[2];
+int colaFuente[10];
 int atletasIntroducidos=0;
 int mejoresPuntuaciones[3]={0,0,0};
 int mejoresAtletas[3]={100,100,100};
@@ -24,6 +24,7 @@ char id[10];
 char msg[100];
 pthread_t juez1;
 pthread_t juez2;
+pthread_t fuente;
 
 void nuevoCompetidorATarima1(int a);
 void nuevoCompetidorATarima2(int a);
@@ -31,7 +32,7 @@ void inicializarAtleta(int posicionPuntero, int numeroAtleta, int necesita_beber
 void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
-void accionesFuente(int atletaActualFuente);
+void *accionesFuente(void *manejadora);
 void *accionesAtleta(void* manejadora);
 void finalizarCompeticion(int a);
 
@@ -53,6 +54,8 @@ pthread_mutex_t controladorEntrada;/*Controla que dos atletas no entren al mismo
 pthread_mutex_t controladorColaJueces;/*controla que no entren a la cola dos atletas y  evita que tengan la misma posicion en la cola*/
 pthread_mutex_t controladorJuez1;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
 pthread_mutex_t controladorJuez2;/*contralara que dos atletas de la cola no intenten entrar al mismo tarima/juez*/
+pthread_mutex_t controladorColaFuente;
+pthread_mutex_t controladorFuente;
 pthread_mutex_t controladorPodium;
 pthread_mutex_t controladorEscritura;/*controlara que no mas de dos atletas o jueces intenten escribir en el fichero*/
 
@@ -78,6 +81,8 @@ int main(){
 	pthread_mutex_init(&controladorColaJueces,NULL);
 	pthread_mutex_init(&controladorJuez1,NULL);
 	pthread_mutex_init(&controladorJuez2,NULL);
+	pthread_mutex_init(&controladorColaFuente,NULL);
+	pthread_mutex_init(&controladorFuente,NULL);
 	pthread_mutex_init(&controladorPodium,NULL);
 	pthread_mutex_init(&controladorEscritura,NULL);
 
@@ -95,6 +100,7 @@ int main(){
 
 	for(i=0;i<NUMATLETAS;i++){
 		colaJuez[i]=100;
+		colaFuente[i]=100;
 	}
 
    	/*Lanzamos losjueces*/
@@ -102,6 +108,9 @@ int main(){
 	pthread_create(&juez1, NULL, accionesJuez,(void*)&i);
 	j=2;	
 	pthread_create(&juez2, NULL, accionesJuez,(void*)&j);
+
+	/*Lanzamos la fuente*/
+	pthread_create(&fuente,NULL, accionesFuente,(void*)&i);
 
 		/*inicializar el archivo, lo creo si no existe y sino lo sobreescribo*/
 	logFile = fopen(logFileName,"w");
@@ -352,67 +361,54 @@ void writeLogMessage(char *id,char *msg){
 		
 }
 
-void accionesFuente(int atletaActual){
+void *accionesFuente(void* manejadora){
 	
 	int i;
-	int temporal;
-	int tiempoEsperaFuente;
-	int atletasIntroducidos = 0;
-	int atletaActualFuente;
-	punteroAtletas[atletaActual].numeroAtleta = atletaActualFuente;
+	int atletaBebe = 100;
+	int atletaBoton = 100;
 
+	while(1){
+		pthread_mutex_lock(&controladorFuente);
 
-	for (i = 0; i < 2; i++)
-	{
-		if (colaFuente[i] != 100)	/*Se añade los atletas a la cola para beber */
+		if (colaFuente[0] != 100 && colaFuente[1] != 100)
 		{
-			atletaActual = colaFuente[i];
-			atletasIntroducidos++;
-			pthread_mutex_lock(&controladorEscritura);
-			sprintf(msg, "Ha llegado a la fuente");
-			sprintf(id, "el atleta %d", punteroAtletas[atletaActual].numeroAtleta);
-			pthread_mutex_unlock(&controladorEscritura);
-		} else{
-			if (colaFuente[i] == 100)
-			{
-				atletaActual = colaFuente[i];
-				atletasIntroducidos++;
-			}else{
-				if (atletasIntroducidos == 2) /*Cuando hay dos atletas en la fuente, se bloquea el acceso a la fuente*/
-				{
-					fuenteOcupada = 1;
-				}
-			}
-			
+			atletaBebe = colaFuente[0];
+			atletaBoton = colaFuente[1];
+			pthread_mutex_lock(&controladorFuente);
+			fuenteOcupada = 1;
+			pthread_mutex_unlock(&controladorFuente);
 		}
+		pthread_mutex_unlock(&controladorColaFuente);
+
+		if(atletaBebe!=100){
+
+			punteroAtletas[atletaBebe].necesita_beber=0;
+			pthread_mutex_lock(&controladorEscritura);
+			sprintf(msg, "ha bebido agua");
+			sprintf(id,"atleta_%d",punteroAtletas[atletaBebe].numeroAtleta);
+			writeLogMessage(id,msg);
+			sprintf(msg, "ha pulsado el boton de la fuente");
+			sprintf(id,"atleta_%d",punteroAtletas[atletaBoton].numeroAtleta);
+			writeLogMessage(id,msg);
+			pthread_mutex_unlock(&controladorEscritura);
+		}
+
+		/*Avanzamos la cola*/
+		pthread_mutex_lock(&controladorColaFuente);
+
+		for(i=0;i<9;i++){
+
+			colaFuente[i]=colaFuente[i+1];
+		}
+
+		colaFuente[9]=100;
+		pthread_mutex_lock(&controladorFuente);
+		fuenteOcupada=0;
+		pthread_mutex_unlock(&controladorFuente);
+		pthread_mutex_unlock(&controladorColaFuente);
+
 	}
-
-
-	while(fuenteOcupada == 1){
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg, "El atleta");
-		sprintf(id, "%d va a beber",colaFuente[0]);
-		pthread_mutex_unlock(&controladorEscritura);
-
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg,"ayudado por el atleta");
-		sprintf(id, "%d",colaFuente[1]);
-		pthread_mutex_unlock(&controladorEscritura);
-
-		pthread_mutex_lock(&controladorEscritura);
-		sprintf(msg, "El atleta");
-		sprintf(id, "%d abandona la fuente porque ya ha bebido", colaFuente[0]);
-		pthread_mutex_unlock(&controladorEscritura);
-
-		temporal = colaFuente[1];
-		colaFuente[1] = colaFuente[0];	/*Se intercambian los valores y se deja un hueco libre en la cola para el siguiente atleta*/
-		colaFuente[0] = temporal;
-		colaFuente[1] = 100;
-
-		atletasIntroducidos--;
-		fuenteOcupada = 0;
-
-	}	
+		
 	
 }
 
@@ -488,10 +484,26 @@ void *accionesAtleta(void* manejadora){
 	}
 
 	/*Comprueba si debe asistir a la fuente*/
-	if (punteroAtletas[atletaActual].necesita_beber == 1)
-		{
-			accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
+	if(punteroAtletas[atletaActual].necesita_beber==1){
+
+		pthread_mutex_unlock(&controladorColaFuente);
+		int j;
+		for(j=0;j<10;j++){
+			if(colaFuente[j]==100){
+				colaJuez[j]=atletaActual;
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg, "se va a la fuente");
+				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+				break;
+			}
 		}
+		pthread_mutex_unlock(&controladorColaFuente);
+		while(punteroAtletas[atletaActual].necesita_beber==1){
+			accionesFuente();
+		}
+	}	
 	
 
 
