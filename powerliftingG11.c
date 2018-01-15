@@ -498,6 +498,7 @@ void *accionesFuente(void* manejadora){
 			colaFuente[9]=100;
 			pthread_mutex_lock(&controladorFuente);
 			fuenteOcupada=0;
+			atletaBebe = 100;
 			pthread_mutex_unlock(&controladorFuente);
 			pthread_mutex_unlock(&controladorColaFuente);
 
