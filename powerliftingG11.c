@@ -31,7 +31,7 @@ void inicializarAtleta(int posicionPuntero, int numeroAtleta, int necesita_beber
 void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
-void accionesFuente(int atletaActual);
+void accionesFuente(int atletaActualFuente);
 void *accionesAtleta(void* manejadora);
 void finalizarCompeticion(int a);
 
@@ -290,7 +290,7 @@ void *accionesJuez(void* manejadora){
 				if(probabilidadAgua==1){
 					punteroAtletas[atletaActual].necesita_beber=1;
 					
-				}
+				} 
 				atletasAtendidos++;
 			}
 			/*Descalificado normativa*/
@@ -358,12 +358,15 @@ void accionesFuente(int atletaActual){
 	int temporal;
 	int tiempoEsperaFuente;
 	int atletasIntroducidos = 0;
+	int atletaActualFuente;
+	punteroAtletas[atletaActual].numeroAtleta = atletaActualFuente;
+
 
 	for (i = 0; i < 2; i++)
 	{
 		if (colaFuente[i] != 100)	/*Se añade los atletas a la cola para beber */
 		{
-			punteroAtletas[atletaActual].numeroAtleta = colaFuente[i];
+			atletaActual = colaFuente[i];
 			atletasIntroducidos++;
 			pthread_mutex_lock(&controladorEscritura);
 			sprintf(msg, "Ha llegado a la fuente");
@@ -372,7 +375,8 @@ void accionesFuente(int atletaActual){
 		} else{
 			if (colaFuente[i] == 100)
 			{
-				punteroAtletas[atletaActual].numeroAtleta = colaFuente[i];
+				atletaActual = colaFuente[i];
+				atletasIntroducidos++;
 			}else{
 				if (atletasIntroducidos == 2) /*Cuando hay dos atletas en la fuente, se bloquea el acceso a la fuente*/
 				{
@@ -383,9 +387,6 @@ void accionesFuente(int atletaActual){
 		}
 	}
 
-	while(fuenteOcupada == 0 && atletasIntroducidos == 1){	/* Mientras no haya dos atletas en la fuente, se va contando el tiempo que esta esperando el atleta por si finaliza la competición para añadirlo al log*/
-		tiempoEsperaFuente++;
-	}
 
 	while(fuenteOcupada == 1){
 		pthread_mutex_lock(&controladorEscritura);
@@ -451,6 +452,12 @@ void *accionesAtleta(void* manejadora){
 	}
 	pthread_mutex_unlock(&controladorColaJueces);
 
+	while(punteroAtletas[atletaActual].ha_competido == 1){
+		if (punteroAtletas[atletaActual].necesita_beber == 1)
+		{
+			accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
+		}
+	}
 	while(punteroAtletas[atletaActual].ha_competido == 0){
 
 		comportamiento = calculoAleatorio(19,0);
@@ -485,10 +492,8 @@ void *accionesAtleta(void* manejadora){
 	}
 
 	/*Comprueba si debe asistir a la fuente*/
-	/*if (punteroAtletas[atletaActual].necesita_beber == 1)
-	{
-		accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
-	}*/
+	
+	
 
 
 
