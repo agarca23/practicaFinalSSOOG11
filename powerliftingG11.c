@@ -27,7 +27,7 @@ pthread_t juez2;
 
 void nuevoCompetidorATarima1(int a);
 void nuevoCompetidorATarima2(int a);
-void inicializarAtleta(int posicionPuntero, int numeroAtleta, int deshidratado, int ha_competido, int tarimaAsignada);
+void inicializarAtleta(int posicionPuntero, int numeroAtleta, int necesita_beber, int ha_competido, int tarimaAsignada);
 void writeLogMessage(char *id,char *msg);
 void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
@@ -39,7 +39,7 @@ void finalizarCompeticion(int a);
 struct atletas{
 	pthread_t hiloAtleta;
 	int numeroAtleta;
-	int deshidratado;
+	int necesita_beber;
 	int ha_competido;
 	int tarimaAsignada;
 };
@@ -86,7 +86,7 @@ int main(){
    	int i,j;
    	for(i=0;i<NUMATLETAS;i++){
     	punteroAtletas[i].numeroAtleta=0;
-		punteroAtletas[i].deshidratado=0;
+		punteroAtletas[i].necesita_beber=0;
 		punteroAtletas[i].ha_competido=0;
 		punteroAtletas[i].tarimaAsignada=0;
   	}
@@ -197,10 +197,10 @@ void nuevoCompetidorATarima2(int a){
 	
 }
 
-void inicializarAtleta(int posicionPuntero, int numeroAtleta, int deshidratado, int ha_competido, int tarimaAsignada){
+void inicializarAtleta(int posicionPuntero, int numeroAtleta, int necesita_beber, int ha_competido, int tarimaAsignada){
 	
 	punteroAtletas[posicionPuntero].numeroAtleta = numeroAtleta;
-	punteroAtletas[posicionPuntero].deshidratado = deshidratado;
+	punteroAtletas[posicionPuntero].necesita_beber = necesita_beber;
 	punteroAtletas[posicionPuntero].ha_competido = ha_competido;
 	punteroAtletas[posicionPuntero].tarimaAsignada = tarimaAsignada;
 	
@@ -288,7 +288,7 @@ void *accionesJuez(void* manejadora){
 				pthread_mutex_unlock(&controladorEscritura);
 				probabilidadAgua=calculoAleatorio(10,1);
 				if(probabilidadAgua==1){
-					punteroAtletas[atletaActual].deshidratado=1;
+					punteroAtletas[atletaActual].necesita_beber=1;
 				}
 				atletasAtendidos++;
 			}
@@ -352,14 +352,14 @@ void writeLogMessage(char *id,char *msg){
 }
 
 void accionesFuente(int atletaActual){
-	/*
+	
 	int i;
 	int temporal;
 	int tiempoEsperaFuente;
 
 	for (i = 0; i < 2; i++)
 	{
-		if (punteroAtletas[atletaActual].deshidratado == 1)
+		if (punteroAtletas[atletaActual].necesita_beber == 1)	/*Se añade los atletas a la cola para beber */
 		{
 			punteroAtletas[atletaActual].numeroAtleta = colaFuente[i];
 			pthread_mutex_lock(&controladorEscritura);
@@ -367,14 +367,14 @@ void accionesFuente(int atletaActual){
 			sprintf(id, "el atleta %d", punteroAtletas[atletaActual].numeroAtleta);
 			pthread_mutex_unlock(&controladorEscritura);
 		} else{
-			if (i == 2)
+			if (i == 2) /*Cuando hay dos atletas en la fuente, se bloquea el acceso a la fuente*/
 			{
 				fuenteOcupada = 1;
 			}
 		}
 	}
 
-	while(fuenteOcupada == 0 && i == 1){
+	while(fuenteOcupada == 0 && i == 1){	/* Mientras no haya dos atletas en la fuente, se va contando el tiempo que esta esperando el atleta por si finaliza la competición para añadirlo al log*/
 		tiempoEsperaFuente++;
 	}
 
@@ -384,14 +384,14 @@ void accionesFuente(int atletaActual){
 		sprintf(msg, "El atleta %d abandona la fuente porque ya ha bebido", colaFuente[0]);
 		pthread_mutex_unlock(&controladorEscritura);
 		temporal = colaFuente[1];
-		colaFuente[1] = colaFuente[0];
+		colaFuente[1] = colaFuente[0];	/*Se intercambian los valores y se deja un hueco libre en la cola para el siguiente atleta*/
 		colaFuente[0] = temporal;
 		colaFuente[1] = NULL;
 
 		fuenteOcupada = 0;
 
 	} while(fuenteOcupada == 1);	
-	*/
+	
 }
 
 
@@ -464,7 +464,10 @@ void *accionesAtleta(void* manejadora){
 	}
 
 	/*Comprueba si debe asistir a la fuente*/
-
+	if (punteroAtletas[atletaActual].necesita_beber == 1)
+	{
+		accionesFuente(punteroAtletas[atletaActual].numeroAtleta);
+	}
 
 
 
