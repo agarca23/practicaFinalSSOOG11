@@ -1,3 +1,7 @@
+/*POWERLIFTING*/
+/*Pablo Pérez López*/
+/*Pablo González de la Iglesia*/
+/*Andrés García Álvarez*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,8 +24,7 @@ int atletasIntroducidos=0;
 int mejoresPuntuaciones[3]={0,0,0};
 int mejoresAtletas[3]={100,100,100};
 int fuenteOcupada;
-char id[10];
-char msg[100];
+
 
 
 void nuevoCompetidorATarima1(int a);
@@ -213,6 +216,108 @@ void inicializarAtleta(int posicionPuntero, int numeroAtleta, int necesita_beber
 	
 }
 
+void *accionesAtleta(void* manejadora){
+	int atletaActual=*(int*)manejadora-1;
+	int comportamiento;
+	int tiempoEspera;
+	int subeTarima = 0;
+	int enEspera=0; //Este es el tiempo que el atleta lleva en espera en una tarima
+	char id[10];
+	char msg[100];
+
+	pthread_mutex_lock(&controladorEscritura);
+	sprintf(msg, "Ha llegado a la tarima %d",punteroAtletas[atletaActual].tarimaAsignada);
+	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+	writeLogMessage(id,msg);
+	pthread_mutex_unlock(&controladorEscritura);
+
+	//Si el atleta llega a la tarima, espera 4 segundos para realizar su levantamiento.
+	sleep(4);
+
+	/*Añadimos el atleta a la cola*/
+	pthread_mutex_lock(&controladorColaJueces);
+	int j;
+	for(j=0;j<10;j++){
+		if(colaJuez[j]==100){
+			colaJuez[j]=atletaActual;
+
+			break;
+		}
+	}
+	pthread_mutex_unlock(&controladorColaJueces);
+
+	
+	
+	while(punteroAtletas[atletaActual].ha_competido == 0){
+
+		comportamiento = calculoAleatorio(19,0);
+		if(comportamiento<3){
+			int i,j;
+			pthread_mutex_lock(&controladorColaJueces);
+			/*Dejamos hueco libre y avanzamos la cola*/
+			for(i=0;i<10;i++){
+				if(colaJuez[i]==atletaActual){
+
+					for(j=i+1;j<10;j++){
+						colaJuez[j-1]=colaJuez[j];
+					}
+					colaJuez[9]=100;
+					break;
+				}
+			}
+			pthread_mutex_unlock(&controladorColaJueces);
+			pthread_mutex_lock(&controladorEscritura);
+			sprintf(msg, "Ha tenido un problema y no va a poder subir a la tarima");
+			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+			writeLogMessage(id,msg);
+			pthread_mutex_unlock(&controladorEscritura);
+
+			pthread_exit(NULL);
+		}else{
+
+
+			sleep(3);
+			enEspera = enEspera+3;
+		}	
+	}
+
+	/*Comprueba si debe asistir a la fuente*/
+	if(punteroAtletas[atletaActual].necesita_beber==1){
+
+		pthread_mutex_lock(&controladorColaFuente);
+		int j;
+		for(j=0;j<10;j++){
+			if(colaFuente[j]==100){
+				//printf("%d\n", atletaActual);
+				colaFuente[j]=atletaActual;
+				//printf("%d\n", colaFuente[j]);
+				//printf("Añado atleta fuente posicion%d\n",j );
+				pthread_mutex_lock(&controladorEscritura);
+				sprintf(msg, "se va a la fuente");
+				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+				writeLogMessage(id,msg);
+				pthread_mutex_unlock(&controladorEscritura);
+				break;
+			}
+		}
+		pthread_mutex_unlock(&controladorColaFuente);
+		while(punteroAtletas[atletaActual].necesita_beber==1){
+		//	accionesFuente();
+		}
+	}	
+	
+
+	pthread_mutex_lock(&controladorEscritura);
+	sprintf(msg, "ha completado su participacion");
+	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
+	writeLogMessage(id,msg);
+	pthread_mutex_unlock(&controladorEscritura);
+
+
+	pthread_exit(NULL);
+
+}
+
 void *accionesJuez(void* manejadora){
 
 	int idJuez= *(int*)manejadora;
@@ -224,6 +329,8 @@ void *accionesJuez(void* manejadora){
 	int j, k;
 	int probabilidadMovimiento;
 	int probabilidadAgua;
+	char id[10];
+	char msg[100];
 
 	while(i==1){
 		atletaActual=100;
@@ -295,7 +402,7 @@ void *accionesJuez(void* manejadora){
 				pthread_mutex_unlock(&controladorEscritura);
 				probabilidadAgua=calculoAleatorio(10,1);
 
-				if(probabilidadAgua==10){
+				if(probabilidadAgua==9){
 					punteroAtletas[atletaActual].necesita_beber=1;
 					
 				} 
@@ -345,26 +452,13 @@ void *accionesJuez(void* manejadora){
 
 }
 
-void writeLogMessage(char *id,char *msg){
-	
-	/*calculamos la hora actual*/
-	time_t now = time(0);
-	struct tm *tlocal = localtime(&now);
-	char stnow[19];
-	strftime(stnow,19,"%d %m %y %H: %M: %S",tlocal);
-	
-	/*escribimos en el log*/
-	logFile = fopen(logFileName, "a");
-	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
-	fclose(logFile);
-		
-}
-
 void *accionesFuente(void* manejadora){
 	
 	int i;
 	int atletaBebe = 100;
 	int atletaBoton = 100;
+	char id[10];
+	char msg[100];
 
 
 	while(1){
@@ -374,7 +468,7 @@ void *accionesFuente(void* manejadora){
 		{
 			atletaBebe = colaFuente[0];
 			atletaBoton = colaFuente[1];
-			printf("Soy la fuente y cogo a los atletas\n");
+			//printf("Soy la fuente y cogo a los atletas\n");
 			pthread_mutex_lock(&controladorFuente);
 			fuenteOcupada = 1;
 			pthread_mutex_unlock(&controladorFuente);
@@ -413,113 +507,9 @@ void *accionesFuente(void* manejadora){
 	
 }
 
-
-int calculoAleatorio(int max, int min){
-	
-	srand(time(NULL));
-	int numeroAleatorio = rand()%((max+1)-min)+min;
-	return numeroAleatorio;
-}
-
-void *accionesAtleta(void* manejadora){
-	int atletaActual=*(int*)manejadora-1;
-	int comportamiento;
-	int tiempoEspera;
-	int subeTarima = 0;
-	int enEspera=0; //Este es el tiempo que el atleta lleva en espera en una tarima
-
-	pthread_mutex_lock(&controladorEscritura);
-	sprintf(msg, "Ha llegado a la tarima %d",punteroAtletas[atletaActual].tarimaAsignada);
-	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-	writeLogMessage(id,msg);
-	pthread_mutex_unlock(&controladorEscritura);
-
-	//Si el atleta llega a la tarima, espera 4 segundos para realizar su levantamiento.
-	sleep(4);
-
-	/*Añadimos el atleta a la cola*/
-	pthread_mutex_lock(&controladorColaJueces);
-	int j;
-	for(j=0;j<10;j++){
-		if(colaJuez[j]==100){
-			colaJuez[j]=atletaActual;
-
-			break;
-		}
-	}
-	pthread_mutex_unlock(&controladorColaJueces);
-
-	
-	
-	while(punteroAtletas[atletaActual].ha_competido == 0){
-
-		comportamiento = calculoAleatorio(19,0);
-		if(comportamiento<3){
-			int i,j;
-			pthread_mutex_lock(&controladorColaJueces);
-			/*Dejamos hueco libre y avanzamos la cola*/
-			for(i=0;i<10;i++){
-				if(colaJuez[i]==atletaActual){
-
-					for(j=i+1;j<10;j++){
-						colaJuez[j-1]=colaJuez[j];
-					}
-					colaJuez[9]=100;
-					break;
-				}
-			}
-			pthread_mutex_unlock(&controladorColaJueces);
-			pthread_mutex_lock(&controladorEscritura);
-			sprintf(msg, "Ha tenido un problema y no va a poder subir a la tarima");
-			sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-			writeLogMessage(id,msg);
-			pthread_mutex_unlock(&controladorEscritura);
-
-			pthread_exit(NULL);
-		}else{
-
-
-			sleep(3);
-			enEspera = enEspera+3;
-		}	
-	}
-
-	/*Comprueba si debe asistir a la fuente*/
-	if(punteroAtletas[atletaActual].necesita_beber==1){
-
-		pthread_mutex_unlock(&controladorColaFuente);
-		int j;
-		for(j=0;j<10;j++){
-			if(colaFuente[j]==100){
-				colaFuente[j]=atletaActual;
-				//printf("Añado atleta fuente posicion%d\n",j );
-				pthread_mutex_lock(&controladorEscritura);
-				sprintf(msg, "se va a la fuente");
-				sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-				writeLogMessage(id,msg);
-				pthread_mutex_unlock(&controladorEscritura);
-				break;
-			}
-		}
-		pthread_mutex_unlock(&controladorColaFuente);
-		while(punteroAtletas[atletaActual].necesita_beber==1){
-		//	accionesFuente();
-		}
-	}	
-	
-
-	pthread_mutex_lock(&controladorEscritura);
-	sprintf(msg, "ha completado su participacion");
-	sprintf(id,"atleta_%d",punteroAtletas[atletaActual].numeroAtleta);
-	writeLogMessage(id,msg);
-	pthread_mutex_unlock(&controladorEscritura);
-
-
-	pthread_exit(NULL);
-
-}
-
 void finalizarCompeticion(int a){
+	char id[10];
+	char msg[100];
 	if(signal(SIGINT,finalizarCompeticion)==SIG_ERR){
 		exit(-1);
 	}
@@ -537,3 +527,31 @@ void finalizarCompeticion(int a){
 
 	exit(0);
 }
+
+void writeLogMessage(char *id,char *msg){
+	
+	/*calculamos la hora actual*/
+	time_t now = time(0);
+	struct tm *tlocal = localtime(&now);
+	char stnow[19];
+	strftime(stnow,19,"%d %m %y %H: %M: %S",tlocal);
+	
+	/*escribimos en el log*/
+	logFile = fopen(logFileName, "a");
+	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
+	fclose(logFile);
+		
+}
+
+
+
+
+int calculoAleatorio(int max, int min){
+	
+	srand(time(NULL));
+	int numeroAleatorio = rand()%((max+1)-min)+min;
+	return numeroAleatorio;
+}
+
+
+
