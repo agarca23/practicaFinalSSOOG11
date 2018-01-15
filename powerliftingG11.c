@@ -33,6 +33,7 @@ void *accionesJuez(void* manejadora);
 int calculoAleatorio(int max, int min);
 void accionesFuente(int atletaActual);
 void *accionesAtleta(void* manejadora);
+void finalizarCompeticion(int a);
 
 
 struct atletas{
@@ -64,6 +65,9 @@ int main(){
 		exit(-1);
 	}
 	if(signal(SIGUSR2,nuevoCompetidorATarima2)==SIG_ERR){
+		exit(-1);
+	}
+	if(signal(SIGINT,finalizarCompeticion)==SIG_ERR){
 		exit(-1);
 	}
 
@@ -133,7 +137,7 @@ void nuevoCompetidorATarima1(int a){
 
 				pthread_create(&punteroAtletas[i].hiloAtleta,NULL,accionesAtleta,(void*)&punteroAtletas[i].numeroAtleta);
 				/*Añadimos el atleta a la cola*/
-				pthread_mutex_lock(&controladorColaJueces);
+				/*pthread_mutex_lock(&controladorColaJueces);
 				for(j=0;j<10;j++){
 					if(colaJuez[j]==100){
 						colaJuez[j]=i;
@@ -141,7 +145,7 @@ void nuevoCompetidorATarima1(int a){
 						break;
 					}
 				}
-				pthread_mutex_unlock(&controladorColaJueces);
+				pthread_mutex_unlock(&controladorColaJueces);*/
 
 /*				pthread_mutex_lock(&controladorEscritura);
 				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
@@ -176,15 +180,7 @@ void nuevoCompetidorATarima2(int a){
 
 				pthread_create(&punteroAtletas[i].hiloAtleta,NULL,accionesAtleta,(void*)&punteroAtletas[i].numeroAtleta);
 
-				pthread_mutex_lock(&controladorColaJueces);
-				for(j=0;j<10;j++){
-					if(colaJuez[j]==100){
-						colaJuez[j]=i;
 
-						break;
-					}
-				}
-				pthread_mutex_unlock(&controladorColaJueces);
 /*				pthread_mutex_lock(&controladorEscritura);
 				sprintf(id,"atleta_%d",punteroAtletas[i].numeroAtleta);
 				sprintf(msg,"entra el ");
@@ -356,6 +352,7 @@ void writeLogMessage(char *id,char *msg){
 }
 
 void accionesFuente(int atletaActual){
+	/*
 	int i;
 	int temporal;
 	int tiempoEsperaFuente;
@@ -394,6 +391,7 @@ void accionesFuente(int atletaActual){
 		fuenteOcupada = 0;
 
 	} while(fuenteOcupada == 1);	
+	*/
 }
 
 
@@ -419,6 +417,18 @@ void *accionesAtleta(void* manejadora){
 
 	//Si el atleta llega a la tarima, espera 4 segundos para realizar su levantamiento.
 	sleep(4);
+
+	/*Añadimos el atleta a la cola*/
+	pthread_mutex_unlock(&controladorColaJueces);
+	int j;
+	for(j=0;j<10;j++){
+		if(colaJuez[j]==100){
+			colaJuez[j]=atletaActual;
+
+			break;
+		}
+	}
+	pthread_mutex_unlock(&controladorColaJueces);
 
 	while(punteroAtletas[atletaActual].ha_competido == 0){
 
@@ -461,4 +471,23 @@ void *accionesAtleta(void* manejadora){
 
 	pthread_exit(NULL);
 
+}
+
+void finalizarCompeticion(int a){
+	if(signal(SIGINT,finalizarCompeticion)==SIG_ERR){
+		exit(-1);
+	}
+	pthread_mutex_lock(&controladorEscritura);
+	sprintf(id,"el atleta_%d",mejoresAtletas[0]);
+	sprintf(msg,"ha ganado con una puntuacion de %d", mejoresPuntuaciones[0]);
+	writeLogMessage(id,msg);
+	sprintf(id,"el atleta_%d",mejoresAtletas[1]);
+	sprintf(msg,"ha quedado segundo con una puntuacion de %d", mejoresPuntuaciones[1]);
+	writeLogMessage(id,msg);
+	sprintf(id,"el atleta_%d",mejoresAtletas[2]);
+	sprintf(msg,"ha quedado tercero con una puntuacion de %d", mejoresPuntuaciones[2]);
+	writeLogMessage(id,msg);
+	pthread_mutex_unlock(&controladorEscritura);
+
+	exit(0);
 }
